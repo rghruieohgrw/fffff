@@ -1,0 +1,589 @@
+local Library = {
+    Windows = {},
+    Toggles = {},
+    Options = {},
+    FontColor = color(1, 1, 1, 1),
+    MainColor = color(0.109, 0.109, 0.109, 1),
+    BackgroundColor = color(0.078, 0.078, 0.078, 1),
+    AccentColor = color(0.0, 0.333, 1, 1),
+    OutlineColor = color(0.196, 0.196, 0.196, 1),
+    RiskColor = color(1, 0.2, 0.2, 1),
+    Black = color(0, 0, 0, 1),
+    Notifications = {},
+    Watermark = { Text = "Linoria for Photon", Pos = vector2(10, 10), Visible = true },
+    ActiveSlider = nil,
+    DraggingWindow = nil,
+    DragOffset = vector2(0, 0),
+    DraggingWatermark = false,
+    Hue = 0,
+    CurrentRainbowColor = color(1, 0, 0, 1),
+    OpenedDropdown = nil,
+    ActiveColorPicker = nil,
+    ActiveKeyPicker = nil,
+    ActiveInput = nil,
+    Tooltip = nil,
+    LastTooltipElement = nil,
+    ModalOpen = false
+}
+
+local KEY_NAMES = {
+    [0x01] = "MB1", [0x02] = "MB2", [0x04] = "MB3", [0x05] = "MB4", [0x06] = "MB5",
+    [0x08] = "Backspace", [0x09] = "Tab", [0x0D] = "Enter", [0x10] = "Shift", [0x11] = "Ctrl", [0x12] = "Alt",
+    [0x13] = "Pause", [0x14] = "Caps Lock", [0x1B] = "Esc", [0x20] = "Space", [0x21] = "Page Up", [0x22] = "Page Down",
+    [0x23] = "End", [0x24] = "Home", [0x25] = "Left", [0x26] = "Up", [0x27] = "Right", [0x28] = "Down",
+    [0x2D] = "Insert", [0x2E] = "Delete",
+    [0x30] = "0", [0x31] = "1", [0x32] = "2", [0x33] = "3", [0x34] = "4", [0x35] = "5", [0x36] = "6", [0x37] = "7", [0x38] = "8", [0x39] = "9",
+    [0x41] = "A", [0x42] = "B", [0x43] = "C", [0x44] = "D", [0x45] = "E", [0x46] = "F", [0x47] = "G", [0x48] = "H", [0x49] = "I",
+    [0x4A] = "J", [0x4B] = "K", [0x4C] = "L", [0x4D] = "M", [0x4E] = "N", [0x4F] = "O", [0x50] = "P", [0x51] = "Q", [0x52] = "R",
+    [0x53] = "S", [0x54] = "T", [0x55] = "U", [0x56] = "V", [0x57] = "W", [0x58] = "X", [0x59] = "Y", [0x5A] = "Z",
+    [0x60] = "Num 0", [0x61] = "Num 1", [0x62] = "Num 2", [0x63] = "Num 3", [0x64] = "Num 4", [0x65] = "Num 5", [0x66] = "Num 6", [0x67] = "Num 7", [0x68] = "Num 8", [0x69] = "Num 9",
+    [0x70] = "F1", [0x71] = "F2", [0x72] = "F3", [0x73] = "F4", [0x74] = "F5", [0x75] = "F6", [0x76] = "F7", [0x77] = "F8", [0x78] = "F9", [0x79] = "F10", [0x7A] = "F11", [0x7B] = "F12",
+    [0xBA] = ";", [0xBB] = "=", [0xBC] = ",", [0xBD] = "-", [0xBE] = ".", [0xBF] = "/", [0xC0] = "`", [0xDB] = "[", [0xDC] = "\\", [0xDD] = "]", [0xDE] = "'"
+}
+
+local CHAR_MAP_NORMAL = {
+    [0x30]="0",[0x31]="1",[0x32]="2",[0x33]="3",[0x34]="4",[0x35]="5",[0x36]="6",[0x37]="7",[0x38]="8",[0x39]="9",[0x41]="a",[0x42]="b",[0x43]="c",[0x44]="d",[0x45]="e",[0x46]="f",[0x47]="g",[0x48]="h",[0x49]="i",[0x4A]="j",[0x4B]="k",[0x4C]="l",[0x4D]="m",[0x4E]="n",[0x4F]="o",[0x50]="p",[0x51]="q",[0x52]="r",[0x53]="s",[0x54]="t",[0x55]="u",[0x56]="v",[0x57]="w",[0x58]="x",[0x59]="y",[0x5A]="z",[0x60]="0",[0x61]="1",[0x62]="2",[0x63]="3",[0x64]="4",[0x65]="5",[0x66]="6",[0x67]="7",[0x68]="8",[0x69]="9",[0xBA]=";",[0xBB]="=",[0xBC]=",",[0xBD]="-",[0xBE]=".",[0xBF]="/",[0xC0]="`",[0xDB]="[",[0xDC]="\\",[0xDD]="]",[0xDE]="'",[0x20]=" "
+}
+local CHAR_MAP_SHIFT = {
+    [0x30]=")",[0x31]="!",[0x32]="@",[0x33]="#",[0x34]="$",[0x35]="%",[0x36]="^",[0x37]="&",[0x38]="*",[0x39]="(",[0x41]="A",[0x42]="B",[0x43]="C",[0x44]="D",[0x45]="E",[0x46]="F",[0x47]="G",[0x48]="H",[0x49]="I",[0x4A]="J",[0x4B]="K",[0x4C]="L",[0x4D]="M",[0x4E]="N",[0x4F]="O",[0x50]="P",[0x51]="Q",[0x52]="R",[0x53]="S",[0x54]="T",[0x55]="U",[0x56]="V",[0x57]="W",[0x58]="X",[0x59]="Y",[0x5A]="Z",[0xBA]=":",[0xBB]="+",[0xBC]="<",[0xBD]="_",[0xBE]=">",[0xBF]="?",[0xC0]="~",[0xDB]="{",[0xDC]="|",[0xDD]="}",[0xDE]='"'
+}
+
+local function rgb_to_hsv(c)
+    local r, g, b = c.r, c.g, c.b
+    local maxc = math.max(r, g, b)
+    local minc = math.min(r, g, b)
+    local h, s, v = 0, 0, maxc
+    local diff = maxc - minc
+    if maxc ~= 0 then s = diff / maxc else return 0, 0, 0 end
+    if diff > 1e-5 then
+        if maxc == r then h = (g - b) / diff
+        elseif maxc == g then h = 2 + (b - r) / diff
+        else h = 4 + (r - g) / diff end
+        h = h / 6
+        if h < 0 then h = h + 1 end
+    end
+    return h, s, v
+end
+
+local function hsv_to_rgb(h, s, v, a)
+    local r, g, b
+    local i = math.floor(h * 6)
+    local f = h * 6 - i
+    local p = v * (1 - s)
+    local q = v * (1 - f * s)
+    local t = v * (1 - (1 - f) * s)
+    i = i % 6
+    if i == 0 then r, g, b = v, t, p elseif i == 1 then r, g, b = q, v, p elseif i == 2 then r, g, b = p, v, t elseif i == 3 then r, g, b = p, q, v elseif i == 4 then r, g, b = t, p, v elseif i == 5 then r, g, b = v, p, q end
+    return color(r, g, b, a or 1)
+end
+
+local function is_mouse_in_rect(pos, size)
+    if not pos or not size then return false end
+    local mouse_pos = input.get_mouse_position()
+    return mouse_pos.x >= pos.x and mouse_pos.x <= pos.x + size.x and mouse_pos.y >= pos.y and mouse_pos.y <= pos.y + size.y
+end
+
+local function get_clipped_text(text, max_width)
+    if render.get_text_size(text).x <= max_width then return text end
+    local clipped_text = text
+    while render.get_text_size(clipped_text .. "...").x > max_width and #clipped_text > 0 do
+        clipped_text = string.sub(clipped_text, 1, -2)
+    end
+    return clipped_text .. "..."
+end
+
+local function draw_checkerboard(pos, size, square_size)
+    local c1 = color(0.8, 0.8, 0.8, 1)
+    local c2 = color(0.6, 0.6, 0.6, 1)
+    for y = 0, math.ceil(size.y / square_size) - 1 do
+        for x = 0, math.ceil(size.x / square_size) - 1 do
+            local p = pos:add(vector2(x * square_size, y * square_size))
+            local s = vector2(math.min(square_size, size.x - x * square_size), math.min(square_size, size.y - y * square_size))
+            local current_c = (x + y) % 2 == 0 and c1 or c2
+            render.add_rect_filled(p, p:add(s), current_c, 0)
+        end
+    end
+end
+
+local ElementMethods = {}
+function ElementMethods:OnChanged(func) self.OnChangedFunc = func; return self end
+function ElementMethods:SetTooltip(text) self.Tooltip = text; return self end
+
+local function CreateElement(base, methods)
+    if type(methods) == "table" then
+        for k, v in pairs(methods) do base[k] = v end
+    end
+    return setmetatable(base, { __index = ElementMethods })
+end
+
+local ToggleMethods = {}
+function ToggleMethods:SetValue(val)
+    self.Value = val
+    if self.Callback then self.Callback(self.Value) end
+    if self.OnChangedFunc then self.OnChangedFunc(self.Value) end
+end
+
+local SliderMethods = {}
+function SliderMethods:SetValue(val)
+    local rounded_val = tonumber(string.format("%." .. (self.Rounding or 0) .. "f", val))
+    self.Value = math.clamp(rounded_val, self.Min, self.Max)
+    if self.Callback then self.Callback(self.Value) end
+    if self.OnChangedFunc then self.OnChangedFunc(self.Value) end
+end
+
+local DropdownMethods = {}
+function DropdownMethods:SetValue(val)
+    self.Value = val
+    if self.Callback then self.Callback(self.Value) end
+    if self.OnChangedFunc then self.OnChangedFunc(self.Value) end
+end
+
+local InputMethods = {}
+function InputMethods:SetValue(val)
+    self.Value = val
+    if self.Callback then self.Callback(self.Value) end
+    if self.OnChangedFunc then self.OnChangedFunc(self.Value) end
+end
+
+local KeyPickerMethods = {}
+function KeyPickerMethods:SetValue(val)
+    self.Value = val
+    if self.Callback then self.Callback(self.Value) end
+    if self.OnChangedFunc then self.OnChangedFunc(self.Value) end
+end
+
+local ColorPickerMethods = {}
+function ColorPickerMethods:SetValue(val)
+    self.Value = val
+    if self.Callback then self.Callback(self.Value) end
+    if self.OnChangedFunc then self.OnChangedFunc(self.Value) end
+    local h, s, v = rgb_to_hsv(val)
+    self.Hue, self.Saturation, self.ValueHSV = h, s, v
+    self.Alpha = val.a
+end
+
+function Library:CreateWindow(config)
+    local window = {
+        Title = config.Title or "Window",
+        Pos = config.Center and vector2(get_screen_size().x / 2 - (config.Size.x / 2), get_screen_size().y / 2 - (config.Size.y / 2)) or vector2(175, 50),
+        Size = config.Size or vector2(550, 600),
+        Visible = config.AutoShow or false,
+        Tabs = {},
+        ActiveTab = nil,
+    }
+
+    function window:AddTab(name)
+        local tab = { Name = name, Parent = window, Groupboxes = {} }
+        function tab:AddLeftGroupbox(name, info) return self:AddGroupbox({ Name = name, Side = "Left", Dependencies = info and info.Dependencies or nil }) end
+        function tab:AddRightGroupbox(name, info) return self:AddGroupbox({ Name = name, Side = "Right", Dependencies = info and info.Dependencies or nil }) end
+        function tab:AddGroupbox(info)
+            local groupbox = { Name = info.Name, Side = info.Side or "Left", Parent = tab, Elements = {}, Dependencies = info.Dependencies }
+            function groupbox:IsVisible()
+                if not self.Dependencies then return true end
+                for _, dep in ipairs(self.Dependencies) do
+                    if dep[1] and dep[1].Value ~= dep[2] then return false end
+                end
+                return true
+            end
+
+            function groupbox:AddToggle(id, info) local el=CreateElement({Id=id,Type="Toggle",Text=info.Text,Value=info.Default or false,Callback=info.Callback,Height=23, Tooltip=info.Tooltip, Risky=info.Risky},ToggleMethods);table.insert(self.Elements,el);Library.Toggles[id]=el;return el end
+            function groupbox:AddSlider(id, info) local el=CreateElement({Id=id,Type="Slider",Text=info.Text,Value=info.Default or 0,Min=info.Min or 0,Max=info.Max or 100,Rounding=info.Rounding or 0,Suffix=info.Suffix or "",Callback=info.Callback,Height=42, Tooltip=info.Tooltip},SliderMethods);table.insert(self.Elements,el);Library.Options[id]=el;return el end
+            function groupbox:AddButton(info) local el={Type="Button",Text=info.Text,Func=info.Func,Height=25, DoubleClick=info.DoubleClick, LastClick=0, Tooltip=info.Tooltip};table.insert(self.Elements,el);return el end
+            function groupbox:AddDropdown(id, info) local el=CreateElement({Id=id,Type="Dropdown",Text=info.Text,Value=info.Default and info.Values[info.Default] or info.Values[1],Values=info.Values,Open=false,Callback=info.Callback,Height=40, Multi=info.Multi, Tooltip=info.Tooltip},DropdownMethods); if info.Multi then el.Value = info.Default or {} end; table.insert(self.Elements,el);Library.Options[id]=el;return el end
+            function groupbox:AddInput(id, info) local el=CreateElement({Id=id,Type="Input",Text=info.Text,Value=info.Default or "",Placeholder=info.Placeholder or "",Callback=info.Callback,Height=40, Tooltip=info.Tooltip},InputMethods);table.insert(self.Elements,el);Library.Options[id]=el;return el end
+            function groupbox:AddKeyPicker(id, info) local el=CreateElement({Id=id,Type="KeyPicker",Text=info.Text,Value=info.Default or "...",Callback=info.Callback,Picking=false,Height=40, Tooltip=info.Tooltip},KeyPickerMethods);table.insert(self.Elements,el);Library.Options[id]=el;return el end
+            function groupbox:AddColorPicker(id, info) local val=info.Default or color(1,1,1,1); local h,s,v=rgb_to_hsv(val); local el=CreateElement({Id=id,Type="ColorPicker",Text=info.Text,Value=val,Open=false,Callback=info.Callback,Height=40,Hue=h,Saturation=s,ValueHSV=v,Alpha=val.a,EnableAlpha=info.EnableAlpha,Tooltip=info.Tooltip},ColorPickerMethods);table.insert(self.Elements,el);Library.Options[id]=el;return el end
+            function groupbox:AddDivider(height) local el={Type="Divider", Height=height or 12};table.insert(self.Elements,el);return el end
+            function groupbox:AddLabel(text) local el={Type="Label", Text=text, Height=20}; table.insert(self.Elements, el); return el end
+            
+            table.insert(self.Groupboxes, groupbox); return groupbox
+        end
+        table.insert(self.Tabs, tab)
+        if not self.ActiveTab then self.ActiveTab = tab end
+        return tab
+    end
+    table.insert(Library.Windows, window)
+    return window
+end
+
+function Library:Notify(text, duration) table.insert(self.Notifications, { Text = text, Duration = duration or 5, StartTime = get_unixtime(), Alpha = 0, TargetAlpha = 1 }) end
+function Library:SetWatermark(text) self.Watermark.Text = text; self.Watermark.Visible = true end
+
+local function render_tooltip()
+    if Library.Tooltip and Library.Tooltip.Text then
+        local mouse_pos = input.get_mouse_position()
+        local text_size = render.get_text_size(Library.Tooltip.Text)
+        local tooltip_size = vector2(text_size.x + 10, text_size.y + 8)
+        local tooltip_pos = mouse_pos:add(vector2(15, 15))
+        
+        render.add_rect_filled(tooltip_pos, tooltip_pos:add(tooltip_size), Library.MainColor, 2)
+        render.add_rect(tooltip_pos, tooltip_pos:add(tooltip_size), Library.OutlineColor, 2, 1)
+        render.add_text(tooltip_pos:add(vector2(5, 4)), Library.Tooltip.Text, Library.FontColor)
+    end
+end
+
+hook.add("render", "linoria_photon_render", function()
+    Library.Hue = (Library.Hue + 0.002) % 1
+    Library.CurrentRainbowColor = hsv_to_rgb(Library.Hue, 0.8, 1)
+
+    local function get_accent_color() if type(Library.AccentColor) == "function" then return Library.AccentColor() end; return Library.AccentColor end
+    local accent = get_accent_color()
+
+    local mouse_pos, mouse_pressed, mouse_down = input.get_mouse_position(), input.is_key_pressed(0x01), input.key_down(0x01)
+
+    Library.ModalOpen = Library.OpenedDropdown or Library.ActiveColorPicker or Library.ActiveKeyPicker or Library.ActiveInput
+
+    if mouse_pressed and (Library.OpenedDropdown or Library.ActiveColorPicker or Library.ActiveKeyPicker or Library.ActiveInput) then
+        if Library.OpenedDropdown and not (is_mouse_in_rect(Library.OpenedDropdown.Layout.pos, Library.OpenedDropdown.Layout.size) or is_mouse_in_rect(Library.OpenedDropdown.Layout.list_pos, Library.OpenedDropdown.Layout.list_size)) then
+            Library.OpenedDropdown.Open = false; Library.OpenedDropdown = nil
+        end
+        if Library.ActiveColorPicker and not is_mouse_in_rect(Library.ActiveColorPicker.layout.picker_pos, Library.ActiveColorPicker.layout.picker_size) then
+            Library.ActiveColorPicker.obj.Open = false; Library.ActiveColorPicker = nil
+        end
+        if Library.ActiveKeyPicker and not is_mouse_in_rect(Library.ActiveKeyPicker.layout.pos, Library.ActiveKeyPicker.layout.size) then
+            Library.ActiveKeyPicker.obj.Picking = false; Library.ActiveKeyPicker = nil
+        end
+        if Library.ActiveInput and not is_mouse_in_rect(Library.ActiveInput.layout.pos, Library.ActiveInput.layout.size) then
+            Library.ActiveInput = nil
+        end
+    end
+    
+    if Library.DraggingWindow then if mouse_down then Library.DraggingWindow.Pos = mouse_pos:subtract(Library.DragOffset) else Library.DraggingWindow = nil end end
+    if Library.ActiveSlider then if mouse_down then local s, l = Library.ActiveSlider.obj, Library.ActiveSlider.layout; local r = (math.clamp(mouse_pos.x, l.pos.x, l.pos.x + l.size.x) - l.pos.x) / l.size.x; local v = s.Min + (s.Max - s.Min) * r; if s.Value ~= v then s:SetValue(v) end else Library.ActiveSlider = nil end end
+    
+    if Library.ActiveColorPicker and mouse_down then
+        local cp = Library.ActiveColorPicker.obj; local layout = Library.ActiveColorPicker.layout
+        if is_mouse_in_rect(layout.sv_pos, layout.sv_size) then
+            cp.Saturation = math.clamp((mouse_pos.x - layout.sv_pos.x) / layout.sv_size.x, 0, 1)
+            cp.ValueHSV = 1 - math.clamp((mouse_pos.y - layout.sv_pos.y) / layout.sv_size.y, 0, 1)
+            cp:SetValue(hsv_to_rgb(cp.Hue, cp.Saturation, cp.ValueHSV, cp.Alpha))
+        elseif is_mouse_in_rect(layout.hue_pos, layout.hue_size) then
+            cp.Hue = math.clamp((mouse_pos.y - layout.hue_pos.y) / layout.hue_size.y, 0, 1)
+            cp:SetValue(hsv_to_rgb(cp.Hue, cp.Saturation, cp.ValueHSV, cp.Alpha))
+        elseif cp.EnableAlpha and is_mouse_in_rect(layout.alpha_pos, layout.alpha_size) then
+            cp.Alpha = math.clamp((mouse_pos.x - layout.alpha_pos.x) / layout.alpha_size.x, 0, 1)
+            cp:SetValue(hsv_to_rgb(cp.Hue, cp.Saturation, cp.ValueHSV, cp.Alpha))
+        end
+    end
+
+    local watermark_size = vector2(render.get_text_size(Library.Watermark.Text).x + 10, 20)
+    if not Library.DraggingWatermark and mouse_pressed and is_mouse_in_rect(Library.Watermark.Pos, watermark_size) then Library.DraggingWatermark = true; Library.DragOffset = mouse_pos:subtract(Library.Watermark.Pos) end
+    if Library.DraggingWatermark then if mouse_down then Library.Watermark.Pos = mouse_pos:subtract(Library.DragOffset) else Library.DraggingWatermark = false end end
+
+    local can_interact = not (Library.OpenedDropdown or Library.ActiveColorPicker or Library.ActiveKeyPicker or Library.ActiveInput)
+    Library.Tooltip = nil
+
+    if menu_active() then
+        for _, window in ipairs(Library.Windows) do
+            if window.Visible then
+                local title_bar_pos, title_bar_size = window.Pos, vector2(window.Size.x, 25)
+                if not Library.DraggingWindow and mouse_pressed and is_mouse_in_rect(title_bar_pos, title_bar_size) and not Library.ModalOpen then Library.DraggingWindow, Library.DragOffset = window, mouse_pos:subtract(window.Pos) end
+                
+                render.add_rect(window.Pos, window.Pos:add(window.Size), accent, 0, 1)
+                render.add_rect_filled(window.Pos:add(vector2(1, 1)), window.Pos:add(window.Size):subtract(vector2(1, 1)), Library.MainColor, 0)
+                render.add_text(window.Pos:add(vector2(7, 4)), window.Title, Library.FontColor)
+                
+                local main_section_pos, main_section_size = window.Pos:add(vector2(8, 25)), vector2(window.Size.x - 16, window.Size.y - 33)
+                render.add_rect(main_section_pos, main_section_pos:add(main_section_size), Library.OutlineColor, 0, 1)
+                render.add_rect_filled(main_section_pos:add(vector2(1, 1)), main_section_pos:add(main_section_size):subtract(vector2(1, 1)), Library.BackgroundColor, 0)
+                
+                local tab_area_pos, tab_x_offset = main_section_pos:add(vector2(8, 8)), 0
+                local active_tab_layout = {}
+                for _, tab in ipairs(window.Tabs) do
+                    local tab_width = render.get_text_size(tab.Name).x + 12
+                    local tab_pos, tab_size = tab_area_pos:add(vector2(tab_x_offset, 0)), vector2(tab_width, 21)
+                    local is_active = (window.ActiveTab == tab)
+                    if is_active then active_tab_layout = { pos = tab_pos, size = tab_size } end
+                    
+                    render.add_rect_filled(tab_pos:add(vector2(1, 1)), tab_pos:add(tab_size):subtract(vector2(1, 1)), is_active and Library.MainColor or Library.BackgroundColor, 0)
+                    render.add_line(tab_pos, tab_pos:add(vector2(0, tab_size.y)), Library.OutlineColor, 1)
+                    render.add_line(tab_pos, tab_pos:add(vector2(tab_size.x, 0)), Library.OutlineColor, 1)
+                    render.add_line(tab_pos:add(vector2(tab_size.x, 0)), tab_pos:add(tab_size), Library.OutlineColor, 1)
+                    if not is_active then render.add_line(tab_pos:add(vector2(0, tab_size.y)), tab_pos:add(tab_size), Library.OutlineColor, 1) end
+                    
+                    render.add_text(tab_pos:add(vector2(6, 3)), tab.Name, Library.FontColor)
+                    if not Library.DraggingWindow and mouse_pressed and is_mouse_in_rect(tab_pos, tab_size) and can_interact then window.ActiveTab = tab end
+                    tab_x_offset = tab_x_offset + tab_width - 1
+                end
+                
+                local tab_container_pos = main_section_pos:add(vector2(8, 30))
+                render.add_rect(tab_container_pos, tab_container_pos:add(vector2(main_section_size.x - 16, main_section_size.y - 38)), Library.OutlineColor, 0, 1)
+                if active_tab_layout.pos then render.add_line(active_tab_layout.pos:add(vector2(1, active_tab_layout.size.y)), active_tab_layout.pos:add(vector2(active_tab_layout.size.x - 1, active_tab_layout.size.y)), Library.MainColor, 2) end
+                
+                if window.ActiveTab then
+                    local content_area, left_y, right_y = tab_container_pos:add(vector2(8, 8)), 0, 0
+                    for _, groupbox in ipairs(window.ActiveTab.Groupboxes) do
+                        if groupbox:IsVisible() then
+                            local side_offset = (groupbox.Side == "Left") and 0 or (window.Size.x / 2 - 20)
+                            local y_offset = (groupbox.Side == "Left") and left_y or right_y
+                            
+                            local group_pos = content_area:add(vector2(side_offset, y_offset))
+                            local current_y = 22
+                            for _, e in ipairs(groupbox.Elements) do current_y = current_y + e.Height end
+                            local group_size = vector2(window.Size.x / 2 - 28, current_y)
+                            
+                            render.add_rect(group_pos, group_pos:add(group_size), Library.OutlineColor, 0, 1)
+                            render.add_rect_filled(group_pos:add(vector2(1, 1)), group_pos:add(group_size):subtract(vector2(1, 1)), Library.BackgroundColor, 0)
+                            render.add_rect_filled(group_pos:add(vector2(1, 1)), group_pos:add(vector2(group_size.x - 1, 3)), accent, 0)
+                            render.add_text(group_pos:add(vector2(4, 5)), groupbox.Name, Library.FontColor)
+                            
+                            local element_y = 25
+                            for _, element in ipairs(groupbox.Elements) do
+                                local element_pos = group_pos:add(vector2(4, element_y))
+                                local element_full_width_size = vector2(group_size.x - 8, element.Height)
+                                if is_mouse_in_rect(element_pos, element_full_width_size) and element.Tooltip then Library.Tooltip = { Text = element.Tooltip, Element = element } end
+
+                                if element.Type == "Toggle" then
+                                    local toggle_box_pos = element_pos:add(vector2(0,4))
+                                    render.add_rect(toggle_box_pos, toggle_box_pos:add(vector2(13, 13)), Library.OutlineColor, 0, 1)
+                                    if element.Value then render.add_rect_filled(toggle_box_pos:add(vector2(2, 2)), toggle_box_pos:add(vector2(11, 11)), accent, 0) end
+                                    render.add_text(element_pos:add(vector2(19, 3)), element.Text, element.Risky and Library.RiskColor or Library.FontColor)
+                                    if not Library.DraggingWindow and mouse_pressed and is_mouse_in_rect(element_pos, vector2(150, 13)) and can_interact then element:SetValue(not element.Value) end
+                                elseif element.Type == "Slider" then
+                                    local s_pos, s_size = element_pos:add(vector2(0, 20)), vector2(group_size.x - 8, 13)
+                                    render.add_text(element_pos, element.Text, Library.FontColor)
+                                    render.add_rect(s_pos, s_pos:add(s_size), Library.OutlineColor, 0, 1)
+                                    render.add_rect_filled(s_pos:add(vector2(1, 1)), s_pos:add(s_size):subtract(vector2(1, 1)), Library.MainColor, 0)
+                                    render.add_rect_filled(s_pos:add(vector2(1, 1)), s_pos:add(vector2(s_size.x * ((element.Value - element.Min) / (element.Max - element.Min)), s_size.y - 1)), accent, 0)
+                                    local val_text = tostring(element.Value) .. element.Suffix
+                                    render.add_text(s_pos:add(vector2(s_size.x / 2 - render.get_text_size(val_text).x / 2, -1)), val_text, Library.FontColor)
+                                    if not Library.DraggingWindow and not Library.ActiveSlider and mouse_pressed and is_mouse_in_rect(s_pos, s_size) and can_interact then Library.ActiveSlider = { obj = element, layout = { pos = s_pos, size = s_size } } end
+                                elseif element.Type == "Button" then
+                                    local b_pos, b_size = element_pos, vector2(group_size.x - 8, 20)
+                                    render.add_rect(b_pos, b_pos:add(b_size), Library.OutlineColor, 0, 1)
+                                    render.add_rect_filled(b_pos:add(vector2(1, 1)), b_pos:add(b_size):subtract(vector2(1, 1)), is_mouse_in_rect(b_pos, b_size) and not mouse_down and accent or Library.MainColor, 0)
+                                    local text_to_render = element.Text
+                                    if element.DoubleClick and get_unixtime() - element.LastClick < 1 and element.LastClick ~= 0 then text_to_render = "Confirm?" end
+                                    local clip_text = get_clipped_text(text_to_render, b_size.x - 10)
+                                    render.add_text(b_pos:add(vector2(b_size.x / 2 - render.get_text_size(clip_text).x / 2, 2)), clip_text, Library.FontColor)
+                                    if not Library.DraggingWindow and mouse_pressed and is_mouse_in_rect(b_pos, b_size) and can_interact then 
+                                        if element.DoubleClick then
+                                            if get_unixtime() - element.LastClick < 1 then
+                                                if element.Func then element.Func() end
+                                                element.LastClick = 0
+                                            else
+                                                element.LastClick = get_unixtime()
+                                            end
+                                        else
+                                            if element.Func then element.Func() end
+                                        end
+                                    end
+                                elseif element.Type == "Dropdown" then
+                                    render.add_text(element_pos, element.Text, Library.FontColor)
+                                    local d_pos, d_size = element_pos:add(vector2(0, 15)), vector2(group_size.x - 8, 20)
+                                    element.Layout = { pos = d_pos, size = d_size }
+                                    render.add_rect(d_pos, d_pos:add(d_size), Library.OutlineColor, 0, 1)
+                                    render.add_rect_filled(d_pos:add(vector2(1, 1)), d_pos:add(d_size):subtract(vector2(1, 1)), Library.MainColor, 0)
+                                    local display_text
+                                    if element.Multi then
+                                        local selected = {}
+                                        for k,v in pairs(element.Value) do if v then table.insert(selected, k) end end
+                                        display_text = #selected > 0 and table.concat(selected, ", ") or "None"
+                                    else
+                                        display_text = tostring(element.Value)
+                                    end
+                                    render.add_text(d_pos:add(vector2(5, 2)), get_clipped_text(display_text, d_size.x-20), Library.FontColor)
+                                    render.add_triangle_filled(d_pos:add(vector2(d_size.x-10, 7)), d_pos:add(vector2(d_size.x-4, 7)), d_pos:add(vector2(d_size.x-7, 13)), Library.FontColor)
+                                    if not Library.DraggingWindow and mouse_pressed and is_mouse_in_rect(d_pos, d_size) and can_interact then element.Open = not element.Open; Library.OpenedDropdown = element.Open and element or nil end
+                                elseif element.Type == "Input" then
+                                    render.add_text(element_pos, element.Text, Library.FontColor)
+                                    local i_pos, i_size = element_pos:add(vector2(0, 15)), vector2(group_size.x - 8, 20)
+                                    element.layout = {pos = i_pos, size = i_size}
+                                    local is_active = Library.ActiveInput == element
+                                    render.add_rect(i_pos, i_pos:add(i_size), is_active and accent or Library.OutlineColor, 0, 1)
+                                    render.add_rect_filled(i_pos:add(vector2(1, 1)), i_pos:add(i_size):subtract(vector2(1, 1)), Library.MainColor, 0)
+                                    local d_text = #element.Value > 0 and element.Value or element.Placeholder
+                                    local text_color = #element.Value > 0 and Library.FontColor or color(0.5, 0.5, 0.5, 1)
+                                    render.add_text(i_pos:add(vector2(5, 2)), get_clipped_text(d_text, i_size.x - 10), text_color)
+                                    if is_active and (math.floor(get_unixtime() * 2) % 2 == 0) then
+                                        local text_width = render.get_text_size(get_clipped_text(element.Value, i_size.x - 10)).x
+                                        render.add_line(i_pos:add(vector2(5 + text_width, 4)), i_pos:add(vector2(5 + text_width, i_size.y - 4)), Library.FontColor, 1)
+                                    end
+                                    if not Library.DraggingWindow and mouse_pressed and is_mouse_in_rect(i_pos, i_size) then Library.ActiveInput = element end
+                                elseif element.Type == "KeyPicker" then
+                                    render.add_text(element_pos, element.Text, Library.FontColor)
+                                    local k_pos, k_size = element_pos:add(vector2(0, 15)), vector2(group_size.x - 8, 20)
+                                    element.layout = {pos = k_pos, size = k_size}
+                                    render.add_rect(k_pos, k_pos:add(k_size), (element.Picking and accent) or Library.OutlineColor, 0, 1)
+                                    render.add_rect_filled(k_pos:add(vector2(1, 1)), k_pos:add(k_size):subtract(vector2(1, 1)), Library.MainColor, 0)
+                                    local text = element.Picking and "..." or ("["..element.Value.."]")
+                                    render.add_text(k_pos:add(vector2(k_size.x/2 - render.get_text_size(text).x/2, 2)), text, Library.FontColor)
+                                    if not Library.DraggingWindow and mouse_pressed and is_mouse_in_rect(k_pos, k_size) and can_interact then element.Picking = true; Library.ActiveKeyPicker = {obj=element, layout=element.layout} end
+                                elseif element.Type == "ColorPicker" then
+                                    render.add_text(element_pos, element.Text, Library.FontColor)
+                                    local c_pos, c_size = element_pos:add(vector2(0, 15)), vector2(group_size.x - 8, 20)
+                                    element.layout = { pos = c_pos, size = c_size }
+                                    render.add_rect(c_pos, c_pos:add(c_size), Library.OutlineColor, 0, 1)
+                                    if element.EnableAlpha then draw_checkerboard(c_pos:add(vector2(1,1)), c_size:subtract(vector2(2,2)), 4) end
+                                    render.add_rect_filled(c_pos:add(vector2(1,1)), c_pos:add(c_size):subtract(vector2(1,1)), element.Value, 0)
+                                    if not Library.DraggingWindow and mouse_pressed and is_mouse_in_rect(c_pos, c_size) and can_interact then element.Open = not element.Open; Library.ActiveColorPicker = element.Open and {obj=element, layout=element.layout} or nil end
+                                elseif element.Type == "Divider" then
+                                    local div_y = element_pos.y + element.Height/2
+                                    render.add_line(vector2(element_pos.x, div_y), vector2(element_pos.x + group_size.x - 8, div_y), Library.OutlineColor, 1)
+                                elseif element.Type == "Label" then
+                                    render.add_text(element_pos:add(vector2(0,3)), element.Text, Library.FontColor)
+                                end
+                                element_y = element_y + element.Height
+                            end
+                            if groupbox.Side == "Left" then left_y = left_y + group_size.y + 12 else right_y = right_y + group_size.y + 12 end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if Library.OpenedDropdown then
+        local e = Library.OpenedDropdown
+        local list_pos = e.Layout.pos:add(vector2(0, e.Layout.size.y + 1))
+        local list_height = math.min(#e.Values, 6) * 20 + 2
+        local list_size = vector2(e.Layout.size.x, list_height)
+        e.Layout.list_pos, e.Layout.list_size = list_pos, list_size
+        
+        render.add_rect_filled(list_pos, list_pos:add(list_size), Library.MainColor, 2)
+        render.add_rect(list_pos, list_pos:add(list_size), Library.OutlineColor, 2, 1)
+        
+        local item_y = 1
+        for _, value in ipairs(e.Values) do
+            local item_pos, item_size = list_pos:add(vector2(1, item_y)), vector2(list_size.x - 2, 20)
+            local is_selected = (e.Multi and e.Value[value]) or (e.Value == value)
+            local text_color = is_selected and accent or Library.FontColor
+            
+            if is_mouse_in_rect(item_pos, item_size) then
+                render.add_rect_filled(item_pos, item_pos:add(item_size), accent, 0)
+                text_color = Library.FontColor
+                if mouse_pressed then
+                    if e.Multi then 
+                        e.Value[value] = not e.Value[value] 
+                        e:SetValue(e.Value)
+                    else 
+                        e:SetValue(value); 
+                        e.Open = false; 
+                        Library.OpenedDropdown = nil 
+                    end
+                end
+            end
+            render.add_text(item_pos:add(vector2(4, 2)), value, text_color)
+            item_y = item_y + 20
+        end
+    end
+
+    if Library.ActiveColorPicker then
+        local e = Library.ActiveColorPicker.obj
+        local picker_size = e.EnableAlpha and vector2(150, 195) or vector2(150, 170)
+        local picker_pos = e.layout.pos:add(vector2(0, e.layout.size.y + 1))
+        e.layout.picker_pos, e.layout.picker_size = picker_pos, picker_size
+
+        render.add_rect_filled(picker_pos, picker_pos:add(picker_size), Library.MainColor, 2)
+        render.add_rect(picker_pos, picker_pos:add(picker_size), Library.OutlineColor, 2, 1)
+        
+        local sv_size, hue_size = vector2(120, 120), vector2(15, 120)
+        local sv_pos = picker_pos:add(vector2(5,5))
+        local hue_pos = picker_pos:add(vector2(130,5))
+        e.layout.sv_pos, e.layout.sv_size, e.layout.hue_pos, e.layout.hue_size = sv_pos, sv_size, hue_pos, hue_size
+
+        local hue_color = hsv_to_rgb(e.Hue, 1, 1)
+        render.add_rect_filled(sv_pos, sv_pos:add(sv_size), color(1, 1, 1, 1), 0)
+        for i=0, sv_size.x-1 do render.add_line(sv_pos:add(vector2(i,0)), sv_pos:add(vector2(i, sv_size.y)), color(hue_color.r, hue_color.g, hue_color.b, i/sv_size.x), 1) end
+        for i=0, sv_size.y-1 do render.add_line(sv_pos:add(vector2(0,i)), sv_pos:add(vector2(sv_size.x, i)), color(0,0,0,i/sv_size.y), 1) end
+        render.add_rect(sv_pos, sv_pos:add(sv_size), Library.Black, 0, 1)
+
+        for i=0,hue_size.y-1 do render.add_line(hue_pos:add(vector2(0,i)), hue_pos:add(vector2(hue_size.x, i)), hsv_to_rgb(i/hue_size.y, 1, 1), 1) end
+        render.add_rect(hue_pos, hue_pos:add(hue_size), Library.Black, 0, 1)
+        
+        local cursor_x = sv_pos.x + sv_size.x * e.Saturation
+        local cursor_y = sv_pos.y + sv_size.y * (1 - e.ValueHSV)
+        render.add_circle(vector2(cursor_x, cursor_y), 4, e.ValueHSV > 0.5 and color(0,0,0,1) or color(1,1,1,1), 1)
+
+        local hue_cursor_y = hue_pos.y + hue_size.y * e.Hue
+        render.add_rect(vector2(hue_pos.x-2, hue_cursor_y-1), vector2(hue_pos.x+hue_size.x+2, hue_cursor_y+1), color(1,1,1,1),0,1)
+
+        local preview_pos, preview_size = picker_pos:add(vector2(5, 130)), vector2(120, 35)
+        draw_checkerboard(preview_pos, preview_size, 5)
+        render.add_rect_filled(preview_pos, preview_pos:add(preview_size), e.Value, 0)
+        render.add_rect(preview_pos, preview_pos:add(preview_size), Library.Black, 0, 1)
+        
+        if e.EnableAlpha then
+            local alpha_pos, alpha_size = picker_pos:add(vector2(5, 170)), vector2(120, 15)
+            e.layout.alpha_pos, e.layout.alpha_size = alpha_pos, alpha_size
+            draw_checkerboard(alpha_pos, alpha_size, 5)
+            local solid_color = hsv_to_rgb(e.Hue, e.Saturation, e.ValueHSV)
+            for i=0,alpha_size.x-1 do
+                render.add_line(alpha_pos:add(vector2(i,0)), alpha_pos:add(vector2(i, alpha_size.y)), color(solid_color.r, solid_color.g, solid_color.b, i/alpha_size.x), 1)
+            end
+            render.add_rect(alpha_pos, alpha_pos:add(alpha_size), Library.Black, 0, 1)
+            local alpha_cursor_x = alpha_pos.x + alpha_size.x * e.Alpha
+            render.add_rect(vector2(alpha_cursor_x-1, alpha_pos.y-2), vector2(alpha_cursor_x+1, alpha_pos.y+alpha_size.y+2), color(1,1,1,1),0,1)
+        end
+    end
+    
+    local notification_y = 40
+    for i = #Library.Notifications, 1, -1 do
+        local notif = Library.Notifications[i]
+        local time_passed = get_unixtime() - notif.StartTime
+        if time_passed > notif.Duration then notif.TargetAlpha = 0 end
+        
+        notif.Alpha = notif.Alpha + (notif.TargetAlpha - notif.Alpha) * 0.1
+        if notif.TargetAlpha == 0 and notif.Alpha < 0.01 then table.remove(Library.Notifications, i) else
+            local notif_size = vector2(render.get_text_size(notif.Text).x + 15, 20)
+            local notif_pos = vector2(10, notification_y)
+            
+            render.add_rect(notif_pos, notif_pos:add(notif_size), color(Library.OutlineColor.r, Library.OutlineColor.g, Library.OutlineColor.b, notif.Alpha), 0, 1)
+            render.add_rect_filled(notif_pos:add(vector2(1, 1)), notif_pos:add(notif_size):subtract(vector2(1, 1)), color(Library.MainColor.r, Library.MainColor.g, Library.MainColor.b, notif.Alpha), 0)
+            render.add_rect_filled(notif_pos, notif_pos:add(vector2(3, notif_size.y)), color(accent.r, accent.g, accent.b, notif.Alpha), 0)
+            render.add_text(notif_pos:add(vector2(8, 2)), notif.Text, color(Library.FontColor.r, Library.FontColor.g, Library.FontColor.b, notif.Alpha))
+            
+            notification_y = notification_y + notif_size.y + 4
+        end
+    end
+    
+    if Library.Watermark.Visible then
+        local pos, size = Library.Watermark.Pos, watermark_size
+        local darker_main = color(Library.MainColor.r * 0.7, Library.MainColor.g * 0.7, Library.MainColor.b * 0.7, 1)
+
+        render.add_rect(pos, pos:add(size), Library.Black, 0, 1)
+        render.add_rect(pos:add(vector2(1,1)), pos:add(size):subtract(vector2(1,1)), accent, 0, 1)
+        
+        local grad_start_pos = pos:add(vector2(2,2))
+        local grad_size = size:subtract(vector2(4,4))
+        for i = 0, grad_size.y - 1 do
+            local lerp_factor = i / (grad_size.y - 1)
+            local line_color = color(darker_main.r+(Library.MainColor.r-darker_main.r)*lerp_factor,darker_main.g+(Library.MainColor.g-darker_main.g)*lerp_factor,darker_main.b+(Library.MainColor.b-darker_main.b)*lerp_factor,1)
+            render.add_line(grad_start_pos:add(vector2(0, i)), grad_start_pos:add(vector2(grad_size.x, i)), line_color, 1)
+        end
+
+        render.add_text(pos:add(vector2(5, 2)), Library.Watermark.Text, Library.FontColor)
+    end
+    
+    render_tooltip()
+end)
+
+hook.add("init", "linoria_key_handler_init", function()
+    hook.addkey(0, "linoria_key_handler", function(key)
+        if Library.ActiveKeyPicker then
+            local key_name = KEY_NAMES[key]
+            if key_name then
+                Library.ActiveKeyPicker.obj:SetValue(key_name)
+                Library.ActiveKeyPicker.obj.Picking = false
+                Library.ActiveKeyPicker = nil
+                Library:Notify("Key bound to " .. key_name)
+            end
+            return
+        end
+
+        if Library.ActiveInput then
+            if key == 0x08 then
+                local val = Library.ActiveInput.Value
+                if #val > 0 then
+                    Library.ActiveInput:SetValue(string.sub(val, 1, -2))
+                end
+            else
+                local is_shift_down = input.key_down(0x10)
+                local char = (is_shift_down and CHAR_MAP_SHIFT[key]) or CHAR_MAP_NORMAL[key]
+                if char then
+                    Library.ActiveInput:SetValue(Library.ActiveInput.Value .. char)
+                end
+            end
+        end
+    end)
+end)
